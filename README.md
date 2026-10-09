@@ -4,10 +4,25 @@ TrailDex is an open-source Android field guide game: take a walk, discover mappe
 
 **Outdoor exploration · on-device collection · optional open-weight AI · retro nature cards**
 
-## Run the demo
+## Try TrailDex on your Android phone
 
-1. Install Android Studio, Android SDK 36, and JDK 17.
-2. Clone this repository and open the `traildex` folder in Android Studio:
+The quickest way to try TrailDex is to install the APK from the latest GitHub Release. You do not need Android Studio, a cable, or a computer.
+
+1. On your Android phone, open the [latest TrailDex release](https://github.com/sudeepsarmah/traildex/releases/latest).
+2. Under **Assets**, tap `traildex-debug.apk` to download it. If GitHub shows “Source code” assets first, expand **Assets** and choose the APK.
+3. Open the downloaded APK from your browser's download notification, or open **Files → Downloads → traildex-debug.apk**.
+4. If Android asks, allow your browser or Files app to **Install unknown apps**. This permission is only needed to install this APK; you can turn it off again afterward.
+5. Return to the installer and tap **Install**, then **Open**.
+6. Open **Trail** and grant location permission while using the app. For a first walk, enable phone location and go outdoors until GPS gets a fix.
+7. Tap **Find Trails Near Me** to look for mapped OpenStreetMap routes near you. This step needs internet; route coverage depends on your area.
+8. Open **Cards**, enter something you observed, choose a habitat, and generate/save a card. This works without Ollama or internet using one of the bundled fallback verses.
+9. Open **Battle**, select a saved card, and try a local practice battle. Cards and trail history stay on your phone.
+
+TrailDex is a community demo distributed as a debug APK. Android displays an install warning because it was downloaded outside Google Play. Only install it if you trust this repository. Updates are not automatic: revisit Releases and install a newer APK when one is published. See the [step-by-step tester tutorial](docs/TESTING.md) for Ollama setup, permissions, sharing, and troubleshooting.
+
+## Build from source
+
+To build the app yourself, install Android Studio, Android SDK 36, and JDK 17. Clone this repository and open the `traildex` folder in Android Studio:
 
    ```sh
    git clone https://github.com/sudeepsarmah/traildex.git
@@ -31,7 +46,7 @@ To build an APK without installing it:
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-For a guided first run, see [the tester tutorial](docs/TESTING.md). It covers GPS permissions, nearby route lookup, card capture, offline fallback poems, practice battles, and troubleshooting. Suggested repository description and topics are in [GitHub About copy](docs/GITHUB_ABOUT.md).
+For GPS permissions, nearby route lookup, offline fallback verses, practice battles, and troubleshooting, see [the tester tutorial](docs/TESTING.md). Suggested repository description and topics are in [GitHub About copy](docs/GITHUB_ABOUT.md).
 
 ## Optional open-weight AI
 

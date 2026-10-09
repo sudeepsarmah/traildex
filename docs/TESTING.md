@@ -2,9 +2,19 @@
 
 This guide walks through the demo from installation to a first practice battle. TrailDex is an Android demo; no account or server is needed.
 
-## 1. Install the demo
+## 1. Install the demo on an Android phone
 
-### Build from source (recommended)
+### Install the APK (no computer or Android Studio required)
+
+1. On the phone, open the [latest TrailDex GitHub Release](https://github.com/sudeepsarmah/traildex/releases/latest).
+2. Expand **Assets** and download `traildex-debug.apk`.
+3. Open the downloaded file from the browser's download notification or from **Files → Downloads**.
+4. If Android blocks the installation, open the offered settings and enable **Allow from this source** for the browser or Files app. Return to the installer and tap **Install**. You can disable this permission after installation.
+5. Tap **Open**. On first use, grant location while using TrailDex when prompted.
+
+This is a debug build distributed directly from GitHub, outside Google Play. Android may show a warning for apps from outside the Play Store. Install only if you trust this project. Releases do not update automatically; download and install a newer APK to update.
+
+### Build from source
 
 Install Android Studio, Android SDK 36, and JDK 17. Clone this repository and open the project folder in Android Studio:
 
@@ -22,10 +32,6 @@ Or, from PowerShell with an emulator or phone already connected:
 ```
 
 To build without installing, run `.\gradlew.bat :app:assembleDebug`. The APK appears at `app/build/outputs/apk/debug/app-debug.apk`.
-
-### Install a downloaded APK
-
-When a GitHub Release is published, download its attached debug APK, open it on the Android phone, and allow installation from that source if Android asks. Debug APKs are for testing and are not signed as a Play Store release. Until then, build it from source using the steps above.
 
 ## 2. Take a walk and find a mapped route
 
