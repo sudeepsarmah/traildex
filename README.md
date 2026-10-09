@@ -6,10 +6,10 @@ TrailDex is an open-source Android field guide game: take a walk, discover mappe
 
 ## Try TrailDex on your Android phone
 
-The quickest way to try TrailDex is to install the APK from the latest GitHub Release. You do not need Android Studio, a cable, or a computer.
+The quickest way to try TrailDex is to download the APK directly from this repository. You do not need Android Studio, a cable, or a computer.
 
-1. On your Android phone, open the [latest TrailDex release](https://github.com/sudeepsarmah/traildex/releases/latest).
-2. Under **Assets**, tap `traildex-debug.apk` to download it. If GitHub shows “Source code” assets first, expand **Assets** and choose the APK.
+1. On your Android phone, tap [Download TrailDex for Android](https://raw.githubusercontent.com/sudeepsarmah/traildex/main/downloads/traildex-debug.apk). The APK is about 12 MiB.
+2. If prompted, confirm the download. Wait for it to finish.
 3. Open the downloaded APK from your browser's download notification, or open **Files → Downloads → traildex-debug.apk**.
 4. If Android asks, allow your browser or Files app to **Install unknown apps**. This permission is only needed to install this APK; you can turn it off again afterward.
 5. Return to the installer and tap **Install**, then **Open**.
@@ -18,7 +18,7 @@ The quickest way to try TrailDex is to install the APK from the latest GitHub Re
 8. Open **Cards**, enter something you observed, choose a habitat, and generate/save a card. This works without Ollama or internet using one of the bundled fallback verses.
 9. Open **Battle**, select a saved card, and try a local practice battle. Cards and trail history stay on your phone.
 
-TrailDex is a community demo distributed as a debug APK. Android displays an install warning because it was downloaded outside Google Play. Only install it if you trust this repository. Updates are not automatic: revisit Releases and install a newer APK when one is published. See the [step-by-step tester tutorial](docs/TESTING.md) for Ollama setup, permissions, sharing, and troubleshooting.
+TrailDex is a community demo distributed as a debug APK. Android displays an install warning because it was downloaded outside Google Play. Only install it if you trust this repository. Updates are not automatic: return to this README and download the current APK again when the project is updated. See the [step-by-step tester tutorial](docs/TESTING.md) for Ollama setup, permissions, sharing, and troubleshooting.
 
 ## Build from source
 
