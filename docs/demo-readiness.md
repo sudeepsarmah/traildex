@@ -20,6 +20,7 @@
 - [ ] Test photo selection/camera with Ollama available, and manually verify uncertain model suggestions.
 - [ ] Exercise card sharing, practice card selection, win/loss flow, and empty-deck guidance.
 - [ ] Add screenshots and a short outdoor demo clip to the GitHub project page.
-- [ ] Set the GitHub repository description and topics to match the README.
+- [ ] Set the GitHub repository description and topics from [the prepared About copy](GITHUB_ABOUT.md).
+- [ ] Publish a GitHub Release with a debug APK after device testing, so testers can install without building from source.
 
 The app store signing, permanent domain, server operations, account system, and public-service scaling checklist is intentionally out of scope for a GitHub demo.

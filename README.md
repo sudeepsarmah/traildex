@@ -31,7 +31,7 @@ To build an APK without installing it:
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-For a guided first run, see [the tester tutorial](docs/TESTING.md). It covers GPS permissions, nearby route lookup, card capture, offline fallback poems, practice battles, and troubleshooting.
+For a guided first run, see [the tester tutorial](docs/TESTING.md). It covers GPS permissions, nearby route lookup, card capture, offline fallback poems, practice battles, and troubleshooting. Suggested repository description and topics are in [GitHub About copy](docs/GITHUB_ABOUT.md).
 
 ## Optional open-weight AI
 
