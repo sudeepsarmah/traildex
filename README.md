@@ -1,6 +1,6 @@
 # TrailDex
 
-TrailDex is an open-source Android field guide game: take a walk, discover mapped routes nearby, record a nature observation, and turn it into a retro card with a haiku. Collect cards and use them in offline practice battles.
+TrailDex is an open-source Android field guide game: record your own GPS walk on a live map, collect a nature observation as a retro card with a haiku, and try that card in an offline practice battle.
 
 **Outdoor exploration · on-device collection · optional open-weight AI · retro nature cards**
 
@@ -14,9 +14,10 @@ The quickest way to try TrailDex is to download the APK directly from this repos
 4. If Android asks, allow your browser or Files app to **Install unknown apps**. This permission is only needed to install this APK; you can turn it off again afterward.
 5. Return to the installer and tap **Install**, then **Open**.
 6. Open **Trail** and grant location permission while using the app. For a first walk, enable phone location and go outdoors until GPS gets a fix.
-7. Tap **Find Trails Near Me** to look for mapped OpenStreetMap routes near you. This step needs internet; route coverage depends on your area.
-8. Open **Cards**, enter something you observed, choose a habitat, and generate/save a card. This works without Ollama or internet using one of the bundled fallback verses.
-9. Open **Battle**, select a saved card, and try a local practice battle. Cards and trail history stay on your phone.
+7. On **Trail**, tap **Pick Start** and **Pick Finish**, then tap those points on the map and choose **Open Walking Directions**. Google Maps (or a browser) opens the walking route. This needs internet.
+8. Tap **Start a Walk**, name it, and follow your route outdoors. **Finish & Save Walk** stores the GPS trace, distance, and time on your phone; saved walks can be selected to review their path later.
+9. Open **Cards**, enter something you observed, choose a habitat, and generate/save a card. This works without Ollama or internet using one of the bundled fallback verses.
+10. Open **Battle**, select a saved card, and try a local practice battle. Different rivals have different stats; the match ends with a simple win/loss animation.
 
 TrailDex is a community demo distributed as a debug APK. Android displays an install warning because it was downloaded outside Google Play. Only install it if you trust this repository. Updates are not automatic: return to this README and download the current APK again when the project is updated. See the [step-by-step tester tutorial](docs/TESTING.md) for Ollama setup, permissions, sharing, and troubleshooting.
 
@@ -29,8 +30,7 @@ To build the app yourself, install Android Studio, Android SDK 36, and JDK 17. C
    cd traildex
    ```
 
-3. Let Gradle sync, then run the `app` configuration on an emulator or Android phone.
-4. Grant location access when starting a trail. Nearby route discovery uses the current GPS fix and OpenStreetMap; GPS distance tracking and saved cards stay on the phone.
+Open the cloned folder in Android Studio, let Gradle sync, and run the `app` configuration on an emulator or connected Android phone. Grant location permission when starting a walk.
 
 From PowerShell, with an Android device or emulator already running:
 
@@ -46,7 +46,7 @@ To build an APK without installing it:
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-For GPS permissions, nearby route lookup, offline fallback verses, practice battles, and troubleshooting, see [the tester tutorial](docs/TESTING.md). Suggested repository description and topics are in [GitHub About copy](docs/GITHUB_ABOUT.md).
+For GPS permissions, map planning, saved route logs, offline fallback verses, practice battles, and troubleshooting, see [the tester tutorial](docs/TESTING.md). A three-step tour appears when the app first opens. Suggested repository description and topics are in [GitHub About copy](docs/GITHUB_ABOUT.md).
 
 ## Optional open-weight AI
 
@@ -59,19 +59,19 @@ ollama serve
 
 For an Android emulator, the default host address is `http://10.0.2.2:11434`. On a physical phone, Ollama must listen on the computer's LAN interface: configure `OLLAMA_HOST=0.0.0.0:11434`, restart Ollama, and use `http://<computer-LAN-IP>:11434` in **Cards → Ollama address**. Allow the port only on a trusted private network; never expose Ollama directly to the public internet. See the [tester tutorial](docs/TESTING.md) for the Windows setup steps.
 
-If Ollama or internet is unavailable, card creation still works and the app supplies one of several varied offline verses. AI suggestions can be wrong; review them before saving. The model and generated images are not bundled with this demo.
+TrailDex saves the configured Ollama address and checks it when Cards opens; it retries when network connectivity returns. This only reconnects to a running, reachable Ollama host. Turning on internet does not start a model server or make a computer on another network reachable. If Ollama or internet is unavailable, card creation still works and the app supplies one of several varied offline verses. AI suggestions can be wrong; review them before saving. The model and generated images are not bundled with this demo.
 
 ## What works offline
 
 - Saved cards, field journal, local practice battles, and GPS walk-distance tracking.
 - A set of varied fallback haiku; they are templates, not generated by a model.
-- Previously cached nearby route results; fresh searches require internet.
+- GPS tracking and saved route traces; displaying live map tiles and opening walking directions require internet.
 
-Finding fresh mapped routes and opening their OpenStreetMap pages requires internet. Route discovery makes a user-triggered query to the public Overpass API, so this demo is intended for individual testing rather than a high-traffic public service. OpenStreetMap data is © OpenStreetMap contributors.
+Map tiles are requested from OpenStreetMap only for the visible map area. Standard OSM tiles are best-effort and are not an offline map download service. Attribution is shown on the map. Google Maps computes the walking route after the user selects **Open Walking Directions**. [Google Maps URLs require no API key](https://developers.google.com/maps/documentation/urls/get-started); map tile use follows the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
 
 ## Scope and privacy
 
-There is no account system or online battle service. Cards and trail history stay in app storage. A photo and observation are sent only to the Ollama address configured by the user when they request AI generation. A GPS location is sent to OpenStreetMap's Overpass API only when the user taps **Find trails near me**. The app does not provide turn-by-turn navigation, background auto-capture, or verified species identification.
+There is no account system or online battle service. Cards and recorded GPS route traces stay in app storage. A photo and observation are sent only to the Ollama address configured by the user when they request AI generation. Viewing the map sends tile requests for the visible area to OpenStreetMap; selecting **Open Walking Directions** shares the chosen endpoints with Google Maps. The app does not provide in-app turn-by-turn navigation, background auto-capture, or verified species identification.
 
 TrailDex is an open-source demo under the [MIT License](LICENSE).
 
@@ -81,8 +81,8 @@ TrailDex can send a user-selected nature photo and observation prompt to an Olla
 
 ## Current demo limits
 
-- The route graphic is illustrative; route discovery opens mapped OpenStreetMap route relations and does not provide turn-by-turn navigation.
-- Photo identification and model-written haiku require a user-managed Ollama server. Offline haiku are varied templates. AI identifications are suggestions, not verified species records.
+- TrailDex shows live OSM map tiles, GPS traces, and saved walks. Google Maps calculates the walking route externally; TrailDex does not provide in-app turn-by-turn navigation.
+- Photo identification and model-written haiku require a user-managed Ollama server. Network return triggers a retry of the saved endpoint, but does not launch/deploy Ollama. Offline haiku are varied templates. AI identifications are suggestions, not verified species records.
 - No online accounts or multiplayer battles are included. Cards, journal entries, and walk totals are stored locally on the device.
 - This is a community demo, not an emergency navigation or ecological-identification tool.
 

@@ -29,6 +29,7 @@ fun ScoutScreen(
     duelWins: Int = 0,
     duelLosses: Int = 0,
     onNavigateToTrail: () -> Unit = {},
+    onNavigateToCards: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -41,7 +42,11 @@ fun ScoutScreen(
         Triple("MOSS WALKER", "Walk 5 km", "🍃") to (trailDistanceKm >= 5f),
         Triple("FIELD NATURALIST", "Save 3 cards", "📖") to (cards.size >= 3),
         Triple("FIRST VICTORY", "Win a practice duel", "⚔") to (duelWins > 0),
-        Triple("TRAIL REGULAR", "Walk 20 km", "🥾") to (trailDistanceKm >= 20f)
+        Triple("TRAIL REGULAR", "Walk 20 km", "🥾") to (trailDistanceKm >= 20f),
+        Triple("NATURE COLLECTOR", "Save 10 field cards", "🪶") to (cards.size >= 10),
+        Triple("WILD PATHFINDER", "Walk 50 km", "🧭") to (trailDistanceKm >= 50f),
+        Triple("DUELIST", "Win 10 practice battles", "🏆") to (duelWins >= 10),
+        Triple("FIELD ARCHIVIST", "Save 25 field cards", "🗂") to (cards.size >= 25)
     )
 
     LazyColumn(
@@ -70,7 +75,7 @@ fun ScoutScreen(
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatBox("TRAIL DIST.", "${"%.2f".format(trailDistanceKm)} km", "GPS logged", Modifier.weight(1f))
-                        StatBox("FIELD CARDS", "${cards.size}", "Saved locally", Modifier.weight(1f))
+                        StatBox("FIELD CARDS", "${cards.size}", "Tap to view", Modifier.weight(1f).clickable(onClick = onNavigateToCards))
                         StatBox("PRACTICE", "${duelWins}W · ${duelLosses}L", "$winRate% wins", Modifier.weight(1f), WarmBerry)
                     }
                     Spacer(Modifier.height(10.dp))

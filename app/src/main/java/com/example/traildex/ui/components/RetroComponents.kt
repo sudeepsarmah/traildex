@@ -62,7 +62,8 @@ fun RetroButton(
     borderColor: Color = CharcoalOutline,
     icon: String? = null,
     subtext: String? = null,
-    cornerRadius: Dp = 4.dp
+    cornerRadius: Dp = 4.dp,
+    enabled: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -91,6 +92,7 @@ fun RetroButton(
             .border(2.dp, borderColor, shape)
             .background(backgroundColor, shape)
             .clickable(
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick

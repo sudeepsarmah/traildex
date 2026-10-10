@@ -12,6 +12,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -25,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import com.example.traildex.theme.*
 import com.example.traildex.ui.components.*
 import com.example.traildex.data.FieldCard
+import kotlin.random.Random
+
+private data class PracticeRival(val name: String, val icon: String, val type: String, val maxHp: Int, val attack: Int)
 
 @Composable
 fun BattleScreen(
@@ -32,16 +40,37 @@ fun BattleScreen(
     onBattleComplete: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val rivalMaxHp = 90
+    val rivals = remember { listOf(
+        PracticeRival("MOSS BEETLE", "🪲", "INSECT · EARTH", 90, 15),
+        PracticeRival("RUSTY FOX", "🦊", "MAMMAL · FOREST", 112, 20),
+        PracticeRival("THORN THRUSH", "🐦", "BIRD · AERIAL", 128, 23),
+        PracticeRival("FERN GUARDIAN", "🌿", "FLORA · SHADE", 104, 18)
+    ) }
+    var rival by remember { mutableStateOf(rivals.random()) }
+    val rivalMaxHp = rival.maxHp
     var selectedCard by remember(cards) { mutableStateOf(cards.firstOrNull()) }
     val playerMaxHp = selectedCard?.hp ?: 110
-    var turn by remember(selectedCard?.id) { mutableIntStateOf(1) }
-    var rivalHp by remember(selectedCard?.id) { mutableIntStateOf(rivalMaxHp) }
-    var playerHp by remember(selectedCard?.id) { mutableIntStateOf(playerMaxHp) }
+    var turn by remember(selectedCard?.id, rival.name) { mutableIntStateOf(1) }
+    var rivalHp by remember(rival.name) { mutableIntStateOf(rivalMaxHp) }
+    var playerHp by remember(rival.name) { mutableIntStateOf(selectedCard?.hp ?: 110) }
     var sapCount by remember { mutableIntStateOf(2) }
-    var battleFinished by remember(selectedCard?.id) { mutableStateOf(false) }
+    var battleFinished by remember(rival.name) { mutableStateOf(false) }
     var battleLog by remember {
         mutableStateOf("Choose a field card to begin a local practice duel.")
+    }
+    fun botRespond(message: String) {
+        if (battleFinished) return
+        val damage = (rival.attack + Random.nextInt(-5, 7)).coerceAtLeast(7)
+        playerHp = (playerHp - damage).coerceAtLeast(0)
+        turn++
+        if (playerHp == 0) {
+            battleFinished = true
+            battleLog = "${rival.name} wins. Try another field card or rival."
+            onBattleComplete(false)
+        } else battleLog = "$message ${rival.name} counterattacks for $damage. Your turn!"
+    }
+    LaunchedEffect(selectedCard?.id) {
+        if (playerHp > playerMaxHp) playerHp = playerMaxHp
     }
     fun attack(name: String, damage: Int) {
         if (battleFinished) return
@@ -57,13 +86,14 @@ fun BattleScreen(
             battleLog = "${card.name} wins! $name dealt $damage damage."
             onBattleComplete(true)
         } else {
-            playerHp = (playerHp - 12).coerceAtLeast(0)
+            val counterDamage = (rival.attack + Random.nextInt(-5, 7)).coerceAtLeast(7)
+            playerHp = (playerHp - counterDamage).coerceAtLeast(0)
             if (playerHp == 0) {
                 battleFinished = true
                 battleLog = "The Trailkeeper bot wins this round. Try another card."
                 onBattleComplete(false)
             } else {
-                battleLog = "${card.name} used $name for $damage damage. The bot counterattacked for 12."
+                battleLog = "${card.name} used $name for $damage damage. ${rival.name} countered for $counterDamage. Your turn!"
             }
         }
     }
@@ -94,8 +124,10 @@ fun BattleScreen(
                                         .border(2.dp, if (selected) PistachioGreen else CharcoalOutline, RoundedCornerShape(4.dp))
                                         .background(if (selected) SoftTealLight else SurfaceCream, RoundedCornerShape(4.dp))
                                         .clickable {
+                                            val wasInProgress = turn > 1 && !battleFinished
                                             selectedCard = card
                                             battleLog = "${card.name} selected. A fresh practice duel is ready."
+                                            if (wasInProgress) botRespond("${card.name} tags in.")
                                         }
                                         .padding(horizontal = 9.dp, vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -148,13 +180,15 @@ fun BattleScreen(
                     )
                 }
 
-                Text(
-                    text = "TURN %02d".format(turn),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Monospace,
-                    color = CharcoalText
-                )
+                AnimatedContent(targetState = turn to battleFinished, label = "battle turn") { (turnNumber, finished) ->
+                    Text(
+                        text = if (finished) "RESULT" else "YOUR TURN ${"%02d".format(turnNumber)}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (finished) WarmBerry else CharcoalText
+                    )
+                }
 
                 Text(
                     text = "PRACTICE",
@@ -233,15 +267,15 @@ fun BattleScreen(
                                         )
                                     }
                                     Text(
-                                        text = "MOSS BEETLE",
+                                        text = rival.name,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Black,
                                         color = CharcoalText
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        RetroBadge(text = "INSECT", backgroundColor = Color(0xFFE2E7DA))
-                                        RetroBadge(text = "EARTH", backgroundColor = Color(0xFFE2D642).copy(alpha = 0.3f))
+                                        RetroBadge(text = rival.type.substringBefore(" · "), backgroundColor = Color(0xFFE2E7DA))
+                                        RetroBadge(text = rival.type.substringAfter(" · "), backgroundColor = Color(0xFFE2D642).copy(alpha = 0.3f))
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Row(
@@ -299,9 +333,9 @@ fun BattleScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(text = "🪲", fontSize = 26.sp)
+                                        Text(text = rival.icon, fontSize = 26.sp)
                                         Text(
-                                            text = "BEETLE",
+                                            text = rival.name.take(9),
                                             fontSize = 6.sp,
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace
@@ -422,6 +456,18 @@ fun BattleScreen(
                             }
                         }
                     }
+
+                    AnimatedVisibility(
+                        visible = battleFinished,
+                        modifier = Modifier.align(Alignment.Center),
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut()
+                    ) {
+                        Column(Modifier.background(if (rivalHp == 0) PistachioGreen else WarmBerry, RoundedCornerShape(8.dp)).padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(if (rivalHp == 0) "FIELD VICTORY!" else "RIVAL WINS", fontSize = 17.sp, fontWeight = FontWeight.Black, color = SurfaceWhite)
+                            Text(if (rivalHp == 0) "${selectedCard?.name} wins the duel" else "Try a different card or rival", fontSize = 10.sp, color = SurfaceWhite)
+                        }
+                    }
                 }
             }
         }
@@ -471,6 +517,24 @@ fun BattleScreen(
             }
         }
 
+        item {
+            RetroButton(
+                text = "↻ RESTART WITH A NEW RIVAL",
+                subtext = "FRESH OPPONENT • RESET HP",
+                onClick = {
+                    val previous = rival.name
+                    rival = rivals.filterNot { it.name == previous }.randomOrNull() ?: rivals.random()
+                    turn = 1
+                    rivalHp = rival.maxHp
+                    playerHp = playerMaxHp
+                    battleFinished = false
+                    battleLog = "${rival.name} enters the field. Your turn!"
+                },
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = SurfaceContainer
+            )
+        }
+
         // 4. Battle Action Grid (2x2 Buttons)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -508,8 +572,7 @@ fun BattleScreen(
                             if (selectedCard == null) battleLog = "Save an observation in Cards first."
                             else if (!battleFinished) {
                                 playerHp = (playerHp + 15).coerceAtMost(playerMaxHp)
-                                turn++
-                                battleLog = "${selectedCard!!.name} recalled its field haiku and recovered 15 HP."
+                                botRespond("${selectedCard!!.name} recalled its field haiku and recovered 15 HP.")
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -531,8 +594,9 @@ fun BattleScreen(
                             }
                             else {
                                 val currentIndex = cards.indexOfFirst { it.id == selectedCard?.id }.coerceAtLeast(0)
-                                selectedCard = cards[(currentIndex + 1) % cards.size]
-                                battleLog = "${selectedCard!!.name} joined the practice duel."
+                                val nextCard = cards[(currentIndex + 1) % cards.size]
+                                selectedCard = nextCard
+                                botRespond("${nextCard.name} tags in.")
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -568,11 +632,11 @@ fun BattleScreen(
 
                 RetroButton(
                     text = "USE SAP",
-                    onClick = {
-                        if (sapCount > 0) {
-                            sapCount--
-                            playerHp = (playerHp + 30).coerceAtMost(playerMaxHp)
-                            battleLog = "Used a trail snack. Restored 30 HP to ${selectedCard?.name ?: "your card"}."
+                        onClick = {
+                            if (sapCount > 0 && !battleFinished && selectedCard != null) {
+                                sapCount--
+                                playerHp = (playerHp + 30).coerceAtMost(playerMaxHp)
+                                botRespond("Used a trail snack. Restored 30 HP to ${selectedCard!!.name}.")
                         }
                     },
                     backgroundColor = if (sapCount > 0) PistachioGreen else Color.Gray,

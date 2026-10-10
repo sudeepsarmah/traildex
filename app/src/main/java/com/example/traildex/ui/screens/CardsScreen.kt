@@ -1,9 +1,14 @@
 package com.example.traildex.ui.screens
 
 import android.content.Intent
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.ConnectivityManager.NetworkCallback
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -13,6 +18,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -185,8 +192,11 @@ fun CardsScreen(
         mutableStateOf(context.getSharedPreferences("traildex_ai", android.content.Context.MODE_PRIVATE)
             .getString("endpoint", LocalAiHaiku.defaultEndpoint) ?: LocalAiHaiku.defaultEndpoint)
     }
+    var activeEndpoint by remember { mutableStateOf(modelEndpoint.trim()) }
     var generating by remember { mutableStateOf(false) }
+    var sampleDeckExpanded by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val cardsListState = rememberLazyListState()
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
@@ -212,7 +222,38 @@ fun CardsScreen(
         }
     }
 
+    // The saved Ollama endpoint reconnects automatically when the phone regains network access.
+    // Internet connectivity alone cannot start Ollama: its host computer must still be running.
+    DisposableEffect(activeEndpoint) {
+        val endpoint = activeEndpoint.trim()
+        if (endpoint.isBlank()) return@DisposableEffect onDispose { }
+        val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        var lastCheck = 0L
+        fun checkOllama() {
+            if (System.currentTimeMillis() - lastCheck < 15_000L) return
+            lastCheck = System.currentTimeMillis()
+            scope.launch {
+                try {
+                    val message = withContext(Dispatchers.IO) { LocalAiHaiku.checkConnection(endpoint) }
+                    aiMessage = "AUTO CHECK • $message"
+                } catch (_: Exception) {
+                    aiMessage = "OLLAMA NOT REACHABLE • YOUR FIELD CARDS STILL WORK OFFLINE"
+                }
+            }
+        }
+        val callback = object : NetworkCallback() {
+            override fun onAvailable(network: Network) { checkOllama() }
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) checkOllama()
+            }
+        }
+        runCatching { connectivity.registerDefaultNetworkCallback(callback) }
+        checkOllama()
+        onDispose { runCatching { connectivity.unregisterNetworkCallback(callback) } }
+    }
+
     LazyColumn(
+        state = cardsListState,
         modifier = modifier
             .fillMaxSize()
             .background(SurfaceCream)
@@ -224,20 +265,13 @@ fun CardsScreen(
             RetroCard(modifier = Modifier.fillMaxWidth(), backgroundColor = SurfaceContainer) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("FIELD NOTE → OPEN MODEL HAIKU", fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace, color = CharcoalText)
-                    Text("Capture a nature photo or describe what you saw. Local Ollama can identify the image and write the haiku.", fontSize = 10.sp, color = CharcoalMuted)
+                    Text("The first time, connect to Ollama on your own computer. TrailDex will retry this saved address when network returns. Wi-Fi alone cannot start a stopped Ollama server.", fontSize = 10.sp, color = CharcoalMuted)
                     OutlinedTextField(value = modelEndpoint, onValueChange = { modelEndpoint = it }, label = { Text("Ollama address") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Button(
                         onClick = {
-                            aiMessage = "CHECKING LOCAL OLLAMA…"
-                            scope.launch {
-                                try {
-                                    val status = withContext(Dispatchers.IO) { LocalAiHaiku.checkConnection(modelEndpoint.trim()) }
-                                    context.getSharedPreferences("traildex_ai", android.content.Context.MODE_PRIVATE).edit().putString("endpoint", modelEndpoint.trim()).apply()
-                                    aiMessage = status
-                                } catch (error: Exception) {
-                                    aiMessage = "OLLAMA NOT REACHABLE • ${error.message ?: "check address, server, and model"}"
-                                }
-                            }
+                            activeEndpoint = modelEndpoint.trim()
+                            context.getSharedPreferences("traildex_ai", android.content.Context.MODE_PRIVATE).edit().putString("endpoint", modelEndpoint.trim()).apply()
+                            aiMessage = "CHECKING SAVED OLLAMA ADDRESS…"
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = SurfaceContainer, contentColor = CharcoalText)
                     ) { Text("CHECK OLLAMA CONNECTION") }
@@ -357,6 +391,19 @@ fun CardsScreen(
             }
         }
 
+        item {
+            RetroCard(Modifier.fillMaxWidth(), backgroundColor = SurfaceWhite) {
+                Row(Modifier.fillMaxWidth().clickable { sampleDeckExpanded = !sampleDeckExpanded }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("SAMPLE CARDS", fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace, color = CharcoalText)
+                        Text("Optional demo cards for trying battles", fontSize = 9.sp, color = CharcoalMuted)
+                    }
+                    Text(if (sampleDeckExpanded) "HIDE ▴" else "SHOW ▾", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SoftTeal)
+                }
+            }
+        }
+
+        if (sampleDeckExpanded) {
         // Top Badges
         item {
             Row(
@@ -638,7 +685,10 @@ fun CardsScreen(
                     )
                     RetroButton(
                         text = "📖 NATUREDEX",
-                        onClick = { aiMessage = "YOUR SAVED CARDS ARE LISTED ABOVE AND IN SCOUT LOG." },
+                        onClick = {
+                            if (cards.isNotEmpty()) scope.launch { cardsListState.animateScrollToItem(1) }
+                            aiMessage = if (cards.isEmpty()) "SAVE YOUR FIRST FIELD CARD TO START THE NATUREDEX." else "YOUR SAVED NATUREDEX CARDS ARE SHOWN ABOVE."
+                        },
                         modifier = Modifier.weight(1f),
                         backgroundColor = WarmBerry,
                         contentColor = SurfaceWhite
@@ -761,6 +811,7 @@ fun CardsScreen(
                     }
                 }
             }
+        }
         }
     }
 }

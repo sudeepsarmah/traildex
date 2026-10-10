@@ -11,6 +11,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -35,6 +38,8 @@ class MainActivity : ComponentActivity() {
                 var currentTab by remember { mutableIntStateOf(0) }
                 val appContext = applicationContext
                 val scoutPrefs = remember { getSharedPreferences("traildex_scout", MODE_PRIVATE) }
+                var guideVisible by remember { mutableStateOf(!scoutPrefs.getBoolean("intro_complete", false)) }
+                var guidePage by remember { mutableIntStateOf(0) }
                 var fieldCards by remember { mutableStateOf(FieldCardStore.load(appContext)) }
                 var trailDistanceMeters by remember { mutableFloatStateOf(getSharedPreferences("trail_session", MODE_PRIVATE).getFloat("distance_m", 0f)) }
                 var duelWins by remember { mutableIntStateOf(scoutPrefs.getInt("wins", 0)) }
@@ -102,10 +107,30 @@ class MainActivity : ComponentActivity() {
                                 trailDistanceKm = trailDistanceMeters / 1000f,
                                 duelWins = duelWins,
                                 duelLosses = duelLosses,
-                                onNavigateToTrail = { currentTab = 0 }
+                                onNavigateToTrail = { currentTab = 0 },
+                                onNavigateToCards = { currentTab = 1 }
                             )
                         }
                     }
+                }
+                if (guideVisible) {
+                    val guide = listOf(
+                        "STEP 1 • TAKE A WALK" to "Start a GPS walk. TrailDex draws your real route and saves it on this phone when you finish. You can pick two map points to open walking directions.",
+                        "STEP 2 • COLLECT A FIELD CARD" to "Photograph or describe a bird, plant, insect, or other find. Save its card and haiku to your local collection; Ollama AI is optional.",
+                        "STEP 3 • BATTLE & TRACK PROGRESS" to "Choose any saved card for an offline practice battle. Scout Log shows your cards, walks, wins, and badges."
+                    )
+                    AlertDialog(
+                        onDismissRequest = { guideVisible = false; scoutPrefs.edit().putBoolean("intro_complete", true).apply() },
+                        title = { Text("WELCOME TO TRAILDEX\n${guide[guidePage].first}") },
+                        text = { Text(guide[guidePage].second) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                if (guidePage < guide.lastIndex) guidePage++
+                                else { guideVisible = false; scoutPrefs.edit().putBoolean("intro_complete", true).apply() }
+                            }) { Text(if (guidePage < guide.lastIndex) "NEXT" else "START EXPLORING") }
+                        },
+                        dismissButton = { TextButton(onClick = { guideVisible = false; scoutPrefs.edit().putBoolean("intro_complete", true).apply() }) { Text("SKIP TOUR") } }
+                    )
                 }
             }
         }

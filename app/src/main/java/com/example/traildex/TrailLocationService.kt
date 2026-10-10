@@ -18,6 +18,7 @@ import android.os.Bundle
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.example.traildex.data.TrailHistory
 
 class TrailLocationService : Service() {
     private var locationManager: LocationManager? = null
@@ -35,6 +36,7 @@ class TrailLocationService : Service() {
                 if (delta in 2f..60f) distanceMeters += delta
             }
             lastLocation = location
+            TrailHistory.append(this@TrailLocationService, location.latitude, location.longitude)
             publish(location, "GPS OK")
             updateNotification()
         }
@@ -55,6 +57,10 @@ class TrailLocationService : Service() {
             return START_NOT_STICKY
         }
         if (locationManager != null) return START_STICKY
+        val sessionPrefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!sessionPrefs.getBoolean(ACTIVE_KEY, false)) {
+            TrailHistory.begin(this, intent?.getStringExtra(EXTRA_TRAIL_NAME) ?: "My trail")
+        }
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -102,6 +108,7 @@ class TrailLocationService : Service() {
     private fun stopTracking() {
         locationManager?.removeUpdates(listener)
         locationManager = null
+        TrailHistory.finish(this, distanceMeters)
         getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(ACTIVE_KEY, false).apply()
         publish(null, "TRACKING PAUSED")
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -155,6 +162,7 @@ class TrailLocationService : Service() {
         const val EXTRA_LATITUDE = "latitude"
         const val EXTRA_LONGITUDE = "longitude"
         const val EXTRA_ACCURACY = "accuracy"
+        const val EXTRA_TRAIL_NAME = "trail_name"
         const val PREFS = "trail_session"
         const val DISTANCE_KEY = "distance_m"
         const val ACTIVE_KEY = "active"
