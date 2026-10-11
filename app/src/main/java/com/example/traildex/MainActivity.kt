@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
                 }
                 if (guideVisible) {
                     val guide = listOf(
-                        "STEP 1 • TAKE A WALK" to "Start a GPS walk. TrailDex draws your real route and saves it on this phone when you finish. You can pick two map points to open walking directions.",
+                        "STEP 1 • TAKE A WALK" to "Pick two points to preview an open walking route, then start a GPS walk. TrailDex saves your real route on this phone when you finish.",
                         "STEP 2 • COLLECT A FIELD CARD" to "Photograph or describe a bird, plant, insect, or other find. Save its card and haiku to your local collection; Ollama AI is optional.",
                         "STEP 3 • BATTLE & TRACK PROGRESS" to "Choose any saved card for an offline practice battle. Scout Log shows your cards, walks, wins, and badges."
                     )

@@ -11,9 +11,9 @@ android {
         applicationId = "com.example.traildex"
         minSdk = 24
         targetSdk = 36
-        versionCode = providers.gradleProperty("traildexVersionCode").orElse("2").get().toIntOrNull()
+        versionCode = providers.gradleProperty("traildexVersionCode").orElse("3").get().toIntOrNull()
             ?: error("traildexVersionCode must be an integer.")
-        versionName = providers.gradleProperty("traildexVersionName").orElse("1.1").get()
+        versionName = providers.gradleProperty("traildexVersionName").orElse("1.2").get()
     }
 
     val releaseStoreFile = System.getenv("TRAILDEX_KEYSTORE")

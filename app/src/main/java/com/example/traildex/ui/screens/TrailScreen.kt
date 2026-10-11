@@ -35,12 +35,17 @@ import com.example.traildex.TrailLocationService
 import com.example.traildex.data.TrailHistory
 import com.example.traildex.data.TrailPoint
 import com.example.traildex.data.TrailRecord
+import com.example.traildex.data.findWalkingRoute
 import com.example.traildex.theme.*
 import com.example.traildex.ui.components.RetroBadge
 import com.example.traildex.ui.components.RetroButton
 import com.example.traildex.ui.components.RetroCard
 import com.example.traildex.ui.components.RetroSegmentedBar
 import com.example.traildex.ui.components.TrailMap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun TrailScreen(onNavigateToDex: () -> Unit = {}, onDistanceChanged: (Float) -> Unit = {}, modifier: Modifier = Modifier) {
@@ -58,6 +63,13 @@ fun TrailScreen(onNavigateToDex: () -> Unit = {}, onDistanceChanged: (Float) -> 
     var selectingPoint by rememberSaveable { mutableStateOf("") }
     var plannedStart by remember(context) { mutableStateOf(readPlannedPoint(context, "start")) }
     var plannedEnd by remember(context) { mutableStateOf(readPlannedPoint(context, "finish")) }
+    var plannedRoute by remember { mutableStateOf(emptyList<TrailPoint>()) }
+    var routeDistance by remember { mutableDoubleStateOf(0.0) }
+    var routeDuration by remember { mutableDoubleStateOf(0.0) }
+    var routeStatus by rememberSaveable { mutableStateOf("Choose two points to plan a walk") }
+    var requestingRoute by remember { mutableStateOf(false) }
+    var lastRouteRequestAt by remember { mutableLongStateOf(0L) }
+    val coroutineScope = rememberCoroutineScope()
     var showRouteName by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         permissionGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true || result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
@@ -127,20 +139,50 @@ fun TrailScreen(onNavigateToDex: () -> Unit = {}, onDistanceChanged: (Float) -> 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("LIVE TRAIL MAP", fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace, color = CharcoalText); Text("TAP MAP TO SET POINTS", fontSize = 8.sp, fontFamily = FontFamily.Monospace, color = SoftTeal) }
                     val displayedTrack = selectedHistoryRoute?.points ?: points
-                    TrailMap(modifier = Modifier.fillMaxWidth().height(230.dp).border(1.dp, CharcoalOutline, RoundedCornerShape(4.dp)), center = selectedHistoryRoute?.points?.lastOrNull() ?: latestLocation?.let { TrailPoint(it.latitude, it.longitude, System.currentTimeMillis()) } ?: points.lastOrNull(), track = displayedTrack, plannedStart = plannedStart, plannedEnd = plannedEnd, focusRouteId = selectedHistoryRoute?.id, followLocation = tracking && selectingPoint.isBlank() && selectedHistoryRoute == null, onMapTap = { lat, lon ->
+                    TrailMap(modifier = Modifier.fillMaxWidth().height(230.dp).border(1.dp, CharcoalOutline, RoundedCornerShape(4.dp)), center = selectedHistoryRoute?.points?.lastOrNull() ?: latestLocation?.let { TrailPoint(it.latitude, it.longitude, System.currentTimeMillis()) } ?: points.lastOrNull(), track = displayedTrack, plannedRoute = plannedRoute, plannedStart = plannedStart, plannedEnd = plannedEnd, focusRouteId = selectedHistoryRoute?.id, followLocation = tracking && selectingPoint.isBlank() && selectedHistoryRoute == null, onMapTap = { lat, lon ->
                         val point = TrailPoint(lat, lon, System.currentTimeMillis())
                         when (selectingPoint) {
-                            "START" -> { plannedStart = point; savePlannedPoint(context, "start", point); selectingPoint = "" }
-                            "FINISH" -> { plannedEnd = point; savePlannedPoint(context, "finish", point); selectingPoint = "" }
+                            "START" -> { plannedStart = point; savePlannedPoint(context, "start", point); selectingPoint = ""; plannedRoute = emptyList(); routeDistance = 0.0; routeDuration = 0.0; routeStatus = "Start updated • find the walk route" }
+                            "FINISH" -> { plannedEnd = point; savePlannedPoint(context, "finish", point); selectingPoint = ""; plannedRoute = emptyList(); routeDistance = 0.0; routeDuration = 0.0; routeStatus = "Finish updated • find the walk route" }
                         }
                     })
-                    Text(if (selectedHistoryRoute != null) "Viewing saved walk • © OpenStreetMap contributors" else "Map tiles need internet. GPS tracks stay on this phone • © OpenStreetMap contributors", fontSize = 8.sp, color = CharcoalMuted)
+                    Text(if (selectedHistoryRoute != null) "Saved GPS trace • © OpenStreetMap contributors" else "Map tiles and route planning need internet • © OpenStreetMap contributors", fontSize = 8.sp, color = CharcoalMuted)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         RetroButton(text = "PICK START", subtext = if (plannedStart == null) "TAP MAP" else coordLabel(plannedStart!!), onClick = { selectingPoint = "START" }, modifier = Modifier.weight(1f), backgroundColor = SoftTealLight)
                         RetroButton(text = "PICK FINISH", subtext = if (plannedEnd == null) "TAP MAP" else coordLabel(plannedEnd!!), onClick = { selectingPoint = "FINISH" }, modifier = Modifier.weight(1f), backgroundColor = AlertYellow)
                     }
                     if (selectingPoint.isNotBlank()) Text("Tap the map to set your ${selectingPoint.lowercase()} point.", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = WarmBerry)
-                    RetroButton(text = "OPEN WALKING DIRECTIONS", subtext = "GOOGLE MAPS • NO API KEY", onClick = { openDirections(context, plannedStart, plannedEnd) }, modifier = Modifier.fillMaxWidth(), backgroundColor = if (plannedStart != null && plannedEnd != null) PistachioGreen else SurfaceContainer, enabled = plannedStart != null && plannedEnd != null)
+                    if (plannedRoute.isNotEmpty()) {
+                        Text("WALK ROUTE • ${"%.1f".format(routeDistance / 1000.0)} KM • ABOUT ${maxOf(1, (routeDuration / 60).toInt())} MIN", fontSize = 9.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = SoftTeal)
+                    }
+                    Text(routeStatus, fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = if (routeStatus.startsWith("Route ready")) SoftTeal else CharcoalMuted)
+                    RetroButton(text = if (requestingRoute) "FINDING WALK ROUTE…" else "FIND WALKING ROUTE", subtext = "OPENSTREETMAP DATA • OSRM FOOT", onClick = {
+                        val start = plannedStart
+                        val finish = plannedEnd
+                        if (start != null && finish != null && !requestingRoute) {
+                            requestingRoute = true
+                            routeStatus = "Requesting a walk route…"
+                            coroutineScope.launch {
+                                val waitMs = (1_000L - (System.currentTimeMillis() - lastRouteRequestAt)).coerceAtLeast(0L)
+                                if (waitMs > 0) delay(waitMs)
+                                lastRouteRequestAt = System.currentTimeMillis()
+                                runCatching { withContext(Dispatchers.IO) { findWalkingRoute(start, finish) } }
+                                    .onSuccess { route ->
+                                        plannedRoute = route.points
+                                        routeDistance = route.distanceMeters
+                                        routeDuration = route.durationSeconds
+                                        routeStatus = "Route ready • verify it before walking"
+                                    }
+                                    .onFailure { error ->
+                                        plannedRoute = emptyList()
+                                        routeStatus = error.message?.take(120) ?: "Route unavailable • try again later"
+                                    }
+                                requestingRoute = false
+                            }
+                        }
+                    }, modifier = Modifier.fillMaxWidth(), backgroundColor = if (plannedStart != null && plannedEnd != null) PistachioGreen else SurfaceContainer, enabled = plannedStart != null && plannedEnd != null && !requestingRoute)
+                    Text("ROUTES BY OSRM • PUBLIC SERVICE • VERIFY PATH AND CONDITIONS BEFORE SETTING OUT", fontSize = 7.sp, fontFamily = FontFamily.Monospace, color = CharcoalMuted)
+                    Text("REPORT MAP DATA ISSUE ↗", Modifier.clickable { openMapIssue(context) }, fontSize = 8.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = SoftTeal)
                 }
             }
         }
@@ -167,22 +209,17 @@ fun TrailScreen(onNavigateToDex: () -> Unit = {}, onDistanceChanged: (Float) -> 
 
 @Composable
 private fun SavedWalkRow(route: TrailRecord, onSelect: () -> Unit) {
-    val context = LocalContext.current
     Row(Modifier.fillMaxWidth().border(1.dp, CharcoalOutline.copy(alpha = .45f), RoundedCornerShape(4.dp)).background(SurfaceCream).clickable(onClick = onSelect).padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { Text(route.name.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Black, color = CharcoalText); Text("${route.points.size} GPS points • ${java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(route.endedAt)}", fontSize = 8.sp, color = CharcoalMuted) }
         Column(horizontalAlignment = Alignment.End) {
             Text("${"%.2f".format(route.distanceMeters / 1000f)} KM", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SoftTeal)
-            Text("DIRECTIONS ↗", Modifier.clickable {
-        val first = route.points.firstOrNull(); val last = route.points.lastOrNull()
-        if (first != null && last != null) openDirections(context, first, last)
-            }, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = SoftTeal)
+            Text("VIEW ON MAP ↗", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = SoftTeal)
         }
     }
 }
 
-private fun openDirections(context: Context, start: TrailPoint?, end: TrailPoint?) {
-    if (start == null || end == null) return
-    val uri = android.net.Uri.parse("https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&travelmode=walking")
+private fun openMapIssue(context: Context) {
+    val uri = android.net.Uri.parse("https://www.openstreetmap.org/fixthemap")
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
 }
 private fun coordLabel(point: TrailPoint) = "${"%.4f".format(point.latitude)}, ${"%.4f".format(point.longitude)}"

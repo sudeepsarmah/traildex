@@ -58,7 +58,7 @@ fun ScoutScreen(
             RetroCard(modifier = Modifier.fillMaxWidth(), backgroundColor = SurfaceWhite) {
                 Column {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("WILDDEx SCOUT ID", fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace, color = CharcoalText)
+                        Text("TRAILDEX SCOUT ID", fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace, color = CharcoalText)
                         Text("LOCAL PROFILE", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = PistachioGreen)
                     }
                     Spacer(Modifier.height(12.dp))

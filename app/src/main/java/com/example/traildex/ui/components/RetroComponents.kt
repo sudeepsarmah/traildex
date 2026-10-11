@@ -258,7 +258,7 @@ fun RetroTopBar(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "WD",
+                        text = "TD",
                         fontWeight = FontWeight.Black,
                         fontSize = 12.sp,
                         color = SurfaceWhite,
@@ -268,7 +268,7 @@ fun RetroTopBar(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "WILDDEX V1.0",
+                        text = "TRAILDEX V1.2",
                         fontSize = 9.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,

@@ -4,7 +4,7 @@ Use this text in the repository's **About** panel when signed in as an owner:
 
 **Description**
 
-> An Android trail companion for collecting nature cards with local Ollama haiku, GPS walks, nearby OpenStreetMap routes, and offline practice battles.
+> An Android trail companion with GPS walks, Leaflet/OpenStreetMap maps, open walking routes, nature cards, local Ollama haiku, and offline practice battles.
 
 **Suggested topics**
 

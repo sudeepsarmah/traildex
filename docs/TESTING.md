@@ -36,12 +36,12 @@ To build without installing, run `.\gradlew.bat :app:assembleDebug`. The APK app
 ## 2. Plan and record your own walk
 
 1. Open **Trail**. Tap **Pick Start**, tap a location on the map, then repeat with **Pick Finish**.
-2. Tap **Open Walking Directions** to open Google Maps with those points. Google Maps calculates walking directions; this action needs internet and shares those selected endpoints with Google.
+2. Tap **Find Walking Route**. TrailDex requests a pedestrian route from the public FOSSGIS OSRM service and draws its geometry on the map. The request shares the selected endpoints with FOSSGIS and needs internet. Review the route before walking.
 3. Tap **Start a Walk**, give it a name, and grant location permission while using the app. On Android 13+, allow notifications for the active tracking notification.
 4. Go outdoors and follow the route in your map app. TrailDex records GPS points and distance while its foreground walk session is active.
-5. Return to TrailDex and tap **Finish & Save Walk**. The route line, distance, and end time are saved locally. Tap a saved walk to display its GPS path on the map; use **Directions** to open an endpoint route in Google Maps.
+5. Return to TrailDex and tap **Finish & Save Walk**. The GPS trace, distance, and end time are saved locally. Tap a saved walk to display its GPS path on the map.
 
-The live OSM map tiles need internet. GPS logging and saved route data stay on the phone; the route line may still be visible over an empty tile background offline. OSM tile servers are best-effort and should not be used for bulk or offline tile downloads. Map data © OpenStreetMap contributors.
+The live OSM map tiles and walking route service need internet. GPS logging and saved route data stay on the phone; GPS traces still display over an empty tile background offline. OSM tiles and FOSSGIS routing are public community services, best-effort, rate limited, and not an offline route service. Avoid repeated route requests (the service policy allows at most one per second), bulk tile use, or relying on the route as safety-critical navigation. Attribution: Map data © OpenStreetMap contributors; routes by OSRM / FOSSGIS.
 
 ## 3. Create a field card without AI
 
@@ -82,7 +82,7 @@ Use the card's share action to send its text to an Android app that accepts shar
 | No device appears for `installDebug` | Start the Android emulator first, or enable USB debugging and accept the phone's computer prompt. Check `adb devices`. |
 | GPS is still waiting | Go outdoors, enable phone location, grant precise location if available, and wait briefly for a fix. |
 | Map tiles are blank | Check internet; GPS tracking and route history still work offline. OSM's public tile service is best-effort. |
-| Walking directions do not open | Set both map points and make sure Google Maps or a browser is installed. |
+| No walking route appears | Check internet, select both map points again, and retry later. The public FOSSGIS route service may be busy or may have no walkable OSM path between the selected points. |
 | Phone cannot reach Ollama | Confirm both devices are on the same Wi-Fi, `OLLAMA_HOST` is set, Ollama was restarted, the LAN IP is current, and the private-network firewall rule allows the connection. |
 | Model missing | Run `ollama pull gemma3:4b` on the computer hosting Ollama. |
 | Offline verse appears | This is the expected fallback when Ollama is unavailable; it is generated from the built-in verse collection and does not require internet. |
